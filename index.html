@@ -1,1 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tabela de Custos Mensais</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --bg: #f5f7fa;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: #333;
+      margin: 0;
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      max-width: 640px;
+      width: 100%;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.05);
+    }
+    h1 {
+      text-align: center;
+      color: var(--primary);
+      margin-top: 0;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: 600;
+    }
+    input, select {
+      width: 100%;
+      padding: .5rem;
+      margin-top: .25rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    table {
+      width: 100%;
+      margin-top: 1.5rem;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: .5rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    .total {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Planejamento de <span id="currentMonth"></span></h1>
+    <form id="costForm">
+      <label for="month">Mês</label>
+      <select id="month">
+        <option>Janeiro</option>
+        <option>Fevereiro</option>
+        <option>Março</option>
+        <option>Abril</option>
+        <option>Maio</option>
+        <option>Junho</option>
+        <option>Julho</option>
+        <option>Agosto</option>
+        <option>Setembro</option>
+        <option>Outubro</option>
+        <option>Novembro</option>
+        <option>Dezembro</option>
+      </select>
+      <div class="grid">
+        <div>
+          <label for="salary">Salário</label>
+          <input type="number" id="salary" placeholder="0" step="0.01" min="0" />
+        </div>
+        <div>
+          <label for="rent">Moradia</label>
+          <input type="number" id="rent" placeholder="0" step="0.01" min="0" />
+        </div>
+        <div>
+          <label for="food">Alimentação</label>
+          <input type="number" id="food" placeholder="0" step="0.01" min="0" />
+        </div>
+        <div>
+          <label for="transport">Transporte</label>
+          <input type="number" id="transport" placeholder="0" step="0.01" min="0" />
+        </div>
+        <div>
+          <label for="others">Outros</label>
+          <input type="number" id="others" placeholder="0" step="0.01" min="0" />
+        </div>
+      </div>
+    </form>
+    <table>
+      <tbody>
+        <tr>
+          <th>Salário</th>
+          <td id="salaryOut">0.00</td>
+        </tr>
+        <tr>
+          <th>Total de despesas</th>
+          <td id="expenseOut">0.00</td>
+        </tr>
+        <tr class="total">
+          <th>Saldo</th>
+          <td id="balanceOut">0.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <script>
+    const monthSelect = document.getElementById('month');
+    const currentMonth = document.getElementById('currentMonth');
+    const inputs = document.querySelectorAll('#costForm input');
+    const salaryOut = document.getElementById('salaryOut');
+    const expenseOut = document.getElementById('expenseOut');
+    const balanceOut = document.getElementById('balanceOut');
 
+    function updateMonth() {
+      currentMonth.textContent = monthSelect.value;
+    }
+
+    function calc() {
+      const salary = parseFloat(document.getElementById('salary').value) || 0;
+      const rent = parseFloat(document.getElementById('rent').value) || 0;
+      const food = parseFloat(document.getElementById('food').value) || 0;
+      const transport = parseFloat(document.getElementById('transport').value) || 0;
+      const others = parseFloat(document.getElementById('others').value) || 0;
+      const expenses = rent + food + transport + others;
+      const balance = salary - expenses;
+      salaryOut.textContent = salary.toFixed(2);
+      expenseOut.textContent = expenses.toFixed(2);
+      balanceOut.textContent = balance.toFixed(2);
+    }
+
+    monthSelect.addEventListener('change', updateMonth);
+    inputs.forEach(i => i.addEventListener('input', calc));
+    updateMonth();
+  </script>
+</body>
+</html>
