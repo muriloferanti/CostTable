@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle Financeiro - Lançamentos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <div class="container-fluid py-3">
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><a class="nav-link" href="index.html">Instruções</a></li>
+      <li class="nav-item"><a class="nav-link" href="categorias.html">Categorias</a></li>
+      <li class="nav-item"><a class="nav-link" href="orcamento.html">Orçamento</a></li>
+      <li class="nav-item"><a class="nav-link active" href="lancamentos.html">Lançamentos</a></li>
+      <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+      <li class="nav-item"><a class="nav-link" href="relatorios.html">Relatórios</a></li>
+    </ul>
+
+    <div id="monthButtons" class="btn-group mb-3 flex-wrap"></div>
+
+    <div class="row g-3">
+      <div class="col-lg-9">
+        <div id="infoMes" class="row g-3 mb-3 text-center">
+          <div class="col-sm-3">
+            <div class="card">
+              <div class="card-body p-2">
+                <h6 class="card-title">Receitas</h6>
+                <p id="receitas" class="mb-0 fw-bold">R$ 0,00</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <div class="card">
+              <div class="card-body p-2">
+                <h6 class="card-title">Investimentos</h6>
+                <p id="investimentos" class="mb-0 fw-bold">R$ 0,00</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <div class="card">
+              <div class="card-body p-2">
+                <h6 class="card-title">Despesas</h6>
+                <p id="despesas" class="mb-0 fw-bold">R$ 0,00</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <div class="card">
+              <div class="card-body p-2">
+                <h6 class="card-title">Saldo do mês</h6>
+                <p id="saldoMes" class="mb-0 fw-bold">R$ 0,00</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-3">
+          <div class="card-body">
+            <h5 class="card-title">Orçamento Mês</h5>
+            <div class="progress">
+              <div id="budgetProgress" class="progress-bar" style="width:0%">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <form id="transactionForm" class="row g-2 mb-3">
+          <div class="col-md-2">
+            <input type="date" id="date" class="form-control" required>
+          </div>
+          <div class="col-md-2">
+            <select id="type" class="form-select">
+              <option value="Receita">Receita</option>
+              <option value="Investimento">Investimento</option>
+              <option value="Despesa">Despesa</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <input type="text" id="subcategory" class="form-control" placeholder="Subcategoria">
+          </div>
+          <div class="col-md-2">
+            <input type="text" id="description" class="form-control" placeholder="Descrição">
+          </div>
+          <div class="col-md-2">
+            <select id="payment" class="form-select">
+              <option>Dinheiro</option>
+              <option>Cartão</option>
+              <option>Pix</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <input type="number" id="value" class="form-control" placeholder="Valor" step="0.01" required>
+          </div>
+          <div class="col-md-1 d-flex align-items-center justify-content-center">
+            <input type="checkbox" id="paid" class="form-check-input" title="Pago?">
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary w-100">Adicionar</button>
+          </div>
+        </form>
+
+        <div class="table-container">
+          <table id="transactionTable" class="table table-striped table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Data</th>
+                <th>Categoria</th>
+                <th>Subcategoria</th>
+                <th>Descrição</th>
+                <th>Forma de Pagamento</th>
+                <th>Valor</th>
+                <th>Pago</th>
+                <th>Saldo</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="col-lg-3">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Resumo</h5>
+            <div class="mb-3">
+              <label for="initialBalance" class="form-label">Saldo Inicial</label>
+              <input type="number" id="initialBalance" class="form-control" step="0.01">
+            </div>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex justify-content-between"><span>Receitas</span><span id="resumoReceitas">R$ 0,00</span></li>
+              <li class="list-group-item d-flex justify-content-between"><span>Investimentos</span><span id="resumoInvestimentos">R$ 0,00</span></li>
+              <li class="list-group-item d-flex justify-content-between"><span>Despesas</span><span id="resumoDespesas">R$ 0,00</span></li>
+              <li class="list-group-item d-flex justify-content-between"><span>Saldo Atual</span><span id="saldoAtual">R$ 0,00</span></li>
+              <li class="list-group-item d-flex justify-content-between"><span>Saldo Previsto</span><span id="saldoPrevisto">R$ 0,00</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
