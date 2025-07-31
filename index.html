@@ -56,6 +56,14 @@
               </div>
             </div>
           </div>
+          <div class="col-sm-3">
+            <div class="card">
+              <div class="card-body p-2">
+                <h6 class="card-title">Fatura Cartão</h6>
+                <p id="faturaCartao" class="mb-0 fw-bold">R$ 0,00</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="card mb-3">
@@ -78,7 +86,7 @@
               <option value="Despesa">Despesa</option>
             </select>
           </div>
-          <div class="col-md-2">
+          <div class="col-md-1">
             <input type="text" id="subcategory" class="form-control" placeholder="Subcategoria">
           </div>
           <div class="col-md-2">
@@ -92,8 +100,9 @@
               <option>Outro</option>
             </select>
           </div>
-          <div class="col-md-1">
+          <div class="col-md-2" id="valueCol">
             <input type="number" id="value" class="form-control" placeholder="Valor" step="0.01" required>
+            <input type="number" id="installments" class="form-control mt-2 d-none" placeholder="Parcelas" min="1" value="1">
           </div>
           <div class="col-md-1 d-flex align-items-center justify-content-center">
             <input type="checkbox" id="paid" class="form-check-input" title="Pago?">
@@ -135,6 +144,7 @@
               <li class="list-group-item d-flex justify-content-between"><span>Receitas</span><span id="resumoReceitas">R$ 0,00</span></li>
               <li class="list-group-item d-flex justify-content-between"><span>Investimentos</span><span id="resumoInvestimentos">R$ 0,00</span></li>
               <li class="list-group-item d-flex justify-content-between"><span>Despesas</span><span id="resumoDespesas">R$ 0,00</span></li>
+              <li class="list-group-item d-flex justify-content-between"><span>Fatura Cartão</span><span id="resumoCartao">R$ 0,00</span></li>
               <li class="list-group-item d-flex justify-content-between"><span>Saldo Atual</span><span id="saldoAtual">R$ 0,00</span></li>
               <li class="list-group-item d-flex justify-content-between"><span>Saldo Previsto</span><span id="saldoPrevisto">R$ 0,00</span></li>
             </ul>
