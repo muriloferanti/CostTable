@@ -1,6 +1,32 @@
 body {
-    font-family: Arial, sans-serif;
+  font-family: 'Inter', sans-serif;
 }
-.card h3 {
-    margin: 0;
+
+.table-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.table-container thead th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 1;
+}
+
+.not-paid {
+  background-color: #fff3cd;
+}
+
+.month-btn.active {
+  background-color: #0d6efd;
+  color: #fff;
+}
+
+.value-expense {
+  color: #dc3545;
+}
+
+.value-income {
+  color: #198754;
 }

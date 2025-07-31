@@ -1,73 +1,157 @@
-let saldoInicial = 3300;
-let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+let currentMonth = new Date().getMonth();
+let store = JSON.parse(localStorage.getItem('financas-v1') || '{}');
 
-function atualizarResumo() {
-    let receitas = 0;
-    let despesas = 0;
-
-    lancamentos.forEach(l => {
-        let valor = parseFloat(l.valor);
-        if (valor > 0) receitas += valor;
-        else despesas += Math.abs(valor);
-    });
-
-    document.getElementById("receitas").innerText = `R$ ${receitas.toFixed(2)}`;
-    document.getElementById("despesas").innerText = `R$ ${despesas.toFixed(2)}`;
-    document.getElementById("saldoAtual").innerText = `R$ ${(saldoInicial + receitas - despesas).toFixed(2)}`;
+function getMonthData(m) {
+  if(!store[m]) store[m] = { initialBalance: 0, transactions: [] };
+  return store[m];
 }
 
-function renderTabela() {
-    let tbody = document.getElementById("tabelaLancamentos");
-    tbody.innerHTML = "";
-    let saldo = saldoInicial;
-
-    lancamentos.forEach((l, index) => {
-        saldo += parseFloat(l.valor);
-
-        let tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${l.data}</td>
-            <td>${l.categoria}</td>
-            <td>${l.subcategoria}</td>
-            <td>${l.descricao}</td>
-            <td>${l.formaPagamento}</td>
-            <td>R$ ${parseFloat(l.valor).toFixed(2)}</td>
-            <td>${l.pago}</td>
-            <td>R$ ${saldo.toFixed(2)}</td>
-            <td><button class="btn btn-danger btn-sm" onclick="removerLancamento(${index})">Excluir</button></td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    atualizarResumo();
+function save() {
+  localStorage.setItem('financas-v1', JSON.stringify(store));
 }
 
-function adicionarLancamento() {
-    let data = document.getElementById("data").value;
-    let categoria = document.getElementById("categoria").value;
-    let subcategoria = document.getElementById("subcategoria").value;
-    let descricao = document.getElementById("descricao").value;
-    let formaPagamento = document.getElementById("formaPagamento").value;
-    let valor = document.getElementById("valor").value;
-    let pago = document.getElementById("pago").value;
+function formatMoney(v) {
+  return 'R$ ' + Number(v).toFixed(2);
+}
 
-    if (!data || !valor) {
-        alert("Preencha pelo menos a data e o valor.");
-        return;
+function renderMonthButtons() {
+  const container = document.getElementById('monthButtons');
+  container.innerHTML = '';
+  months.forEach((m,i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-outline-primary month-btn'+(i===currentMonth?' active':'');
+    btn.textContent = m.toUpperCase();
+    btn.dataset.month = i;
+    btn.addEventListener('click', ()=>{
+      currentMonth = i;
+      render();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function renderTable() {
+  const tbody = document.querySelector('#transactionTable tbody');
+  tbody.innerHTML = '';
+  const data = getMonthData(currentMonth);
+  const sorted = [...data.transactions].sort((a,b)=>new Date(a.date) - new Date(b.date));
+  let balance = data.initialBalance;
+  sorted.forEach(t=>{
+    const tr = document.createElement('tr');
+    if(!t.paid) tr.classList.add('not-paid');
+    const value = Number(t.value);
+    if(t.category === 'Receita') balance += value; else balance -= value;
+    tr.innerHTML = `
+      <td>${t.date}</td>
+      <td>${t.category}</td>
+      <td>${t.subcategory || ''}</td>
+      <td>${t.description || ''}</td>
+      <td>${t.payment || ''}</td>
+      <td class="${t.category==='Receita'?'value-income':'value-expense'}">${formatMoney(value)}</td>
+      <td class="text-center"><input type="checkbox" class="form-check-input paid-toggle" data-id="${t.id}" ${t.paid?'checked':''}></td>
+      <td>${formatMoney(balance)}</td>
+      <td><button class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}"><i class="bi bi-trash"></i></button></td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.delete-btn').forEach(b=>b.addEventListener('click', deleteTransaction));
+  tbody.querySelectorAll('.paid-toggle').forEach(c=>c.addEventListener('change', togglePaid));
+}
+
+function recalc() {
+  const data = getMonthData(currentMonth);
+  let receitas=0, investimentos=0, despesas=0;
+  let receitasPagas=0, investimentosPagos=0, despesasPagas=0;
+  data.transactions.forEach(t=>{
+    const v = Number(t.value);
+    if(t.category==='Receita') {
+      receitas+=v; if(t.paid) receitasPagas+=v;
+    } else if(t.category==='Investimento') {
+      investimentos+=v; if(t.paid) investimentosPagos+=v;
+    } else {
+      despesas+=v; if(t.paid) despesasPagas+=v;
     }
+  });
+  const saldoMes = receitas - despesas - investimentos;
+  const saldoPrevisto = data.initialBalance + saldoMes;
+  const saldoAtual = data.initialBalance + receitasPagas - despesasPagas - investimentosPagos;
 
-    lancamentos.push({ data, categoria, subcategoria, descricao, formaPagamento, valor, pago });
-    localStorage.setItem("lancamentos", JSON.stringify(lancamentos));
+  document.getElementById('receitas').textContent = formatMoney(receitas);
+  document.getElementById('investimentos').textContent = formatMoney(investimentos);
+  document.getElementById('despesas').textContent = formatMoney(despesas);
+  document.getElementById('saldoMes').textContent = formatMoney(saldoMes);
 
-    renderTabela();
+  document.getElementById('resumoReceitas').textContent = formatMoney(receitas);
+  document.getElementById('resumoInvestimentos').textContent = formatMoney(investimentos);
+  document.getElementById('resumoDespesas').textContent = formatMoney(despesas);
+  document.getElementById('saldoAtual').textContent = formatMoney(saldoAtual);
+  document.getElementById('saldoPrevisto').textContent = formatMoney(saldoPrevisto);
 
-    document.querySelectorAll("input, select").forEach(el => el.value = "");
+  const gastos = despesas + investimentos;
+  const budget = receitas || 1;
+  const percent = Math.min(100, (gastos / budget) * 100);
+  const bar = document.getElementById('budgetProgress');
+  bar.style.width = percent + '%';
+  bar.textContent = percent.toFixed(0) + '%';
+  bar.classList.toggle('bg-danger', percent >= 100);
 }
 
-function removerLancamento(index) {
-    lancamentos.splice(index, 1);
-    localStorage.setItem("lancamentos", JSON.stringify(lancamentos));
-    renderTabela();
+function addTransaction(e) {
+  e.preventDefault();
+  const form = e.target;
+  const t = {
+    id: Date.now(),
+    date: form.date.value,
+    category: form.type.value,
+    subcategory: form.subcategory.value,
+    description: form.description.value,
+    payment: form.payment.value,
+    value: parseFloat(form.value.value),
+    paid: form.paid.checked
+  };
+  const data = getMonthData(currentMonth);
+  data.transactions.push(t);
+  save();
+  form.reset();
+  render();
 }
 
-renderTabela();
+function deleteTransaction(e) {
+  const id = Number(e.currentTarget.dataset.id);
+  const data = getMonthData(currentMonth);
+  data.transactions = data.transactions.filter(t=>t.id!==id);
+  save();
+  render();
+}
+
+function togglePaid(e) {
+  const id = Number(e.target.dataset.id);
+  const data = getMonthData(currentMonth);
+  const t = data.transactions.find(t=>t.id===id);
+  if(t){
+    t.paid = e.target.checked;
+    save();
+    recalc();
+  }
+}
+
+function init() {
+  renderMonthButtons();
+  document.getElementById('transactionForm').addEventListener('submit', addTransaction);
+  document.getElementById('initialBalance').addEventListener('input', e=>{
+    const data = getMonthData(currentMonth);
+    data.initialBalance = parseFloat(e.target.value)||0;
+    save();
+    render();
+  });
+  render();
+}
+
+function render() {
+  document.getElementById('initialBalance').value = getMonthData(currentMonth).initialBalance;
+  renderMonthButtons();
+  renderTable();
+  recalc();
+}
+
+document.addEventListener('DOMContentLoaded', init);
