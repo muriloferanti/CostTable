@@ -15,6 +15,12 @@ function formatMoney(v) {
   return 'R$ ' + Number(v).toFixed(2);
 }
 
+function addMonths(date, months) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
 function renderMonthButtons() {
   const container = document.getElementById('monthButtons');
   container.innerHTML = '';
@@ -60,7 +66,7 @@ function renderTable() {
 
 function recalc() {
   const data = getMonthData(currentMonth);
-  let receitas=0, investimentos=0, despesas=0;
+  let receitas=0, investimentos=0, despesas=0, cartao=0;
   let receitasPagas=0, investimentosPagos=0, despesasPagas=0;
   data.transactions.forEach(t=>{
     const v = Number(t.value);
@@ -71,6 +77,7 @@ function recalc() {
     } else {
       despesas+=v; if(t.paid) despesasPagas+=v;
     }
+    if(t.payment==='Cartão') cartao+=v;
   });
   const saldoMes = receitas - despesas - investimentos;
   const saldoPrevisto = data.initialBalance + saldoMes;
@@ -80,10 +87,12 @@ function recalc() {
   document.getElementById('investimentos').textContent = formatMoney(investimentos);
   document.getElementById('despesas').textContent = formatMoney(despesas);
   document.getElementById('saldoMes').textContent = formatMoney(saldoMes);
+  document.getElementById('faturaCartao').textContent = formatMoney(cartao);
 
   document.getElementById('resumoReceitas').textContent = formatMoney(receitas);
   document.getElementById('resumoInvestimentos').textContent = formatMoney(investimentos);
   document.getElementById('resumoDespesas').textContent = formatMoney(despesas);
+  document.getElementById('resumoCartao').textContent = formatMoney(cartao);
   document.getElementById('saldoAtual').textContent = formatMoney(saldoAtual);
   document.getElementById('saldoPrevisto').textContent = formatMoney(saldoPrevisto);
 
@@ -99,20 +108,46 @@ function recalc() {
 function addTransaction(e) {
   e.preventDefault();
   const form = e.target;
-  const t = {
-    id: Date.now(),
-    date: form.date.value,
-    category: form.type.value,
-    subcategory: form.subcategory.value,
-    description: form.description.value,
-    payment: form.payment.value,
-    value: parseFloat(form.value.value),
-    paid: form.paid.checked
-  };
-  const data = getMonthData(currentMonth);
-  data.transactions.push(t);
+  if(form.payment.value === 'Cartão') {
+    const total = parseFloat(form.value.value);
+    const parcelas = parseInt(form.installments.value) || 1;
+    const base = Math.floor((total / parcelas) * 100) / 100;
+    let restante = total;
+    for(let i=0;i<parcelas;i++) {
+      const valor = i === parcelas-1 ? restante : base;
+      restante -= base;
+      const d = addMonths(form.date.value, i);
+      const dateStr = d.toISOString().split('T')[0];
+      const t = {
+        id: Date.now()+i,
+        date: dateStr,
+        category: form.type.value,
+        subcategory: form.subcategory.value,
+        description: `${form.description.value || ''} (${i+1}/${parcelas})`,
+        payment: form.payment.value,
+        value: valor,
+        paid: false
+      };
+      const dataMonth = getMonthData(d.getMonth());
+      dataMonth.transactions.push(t);
+    }
+  } else {
+    const t = {
+      id: Date.now(),
+      date: form.date.value,
+      category: form.type.value,
+      subcategory: form.subcategory.value,
+      description: form.description.value,
+      payment: form.payment.value,
+      value: parseFloat(form.value.value),
+      paid: form.paid.checked
+    };
+    const data = getMonthData(currentMonth);
+    data.transactions.push(t);
+  }
   save();
   form.reset();
+  handlePaymentChange();
   render();
 }
 
@@ -122,6 +157,21 @@ function deleteTransaction(e) {
   data.transactions = data.transactions.filter(t=>t.id!==id);
   save();
   render();
+}
+
+function handlePaymentChange() {
+  const installments = document.getElementById('installments');
+  const value = document.getElementById('value');
+  if(document.getElementById('payment').value === 'Cartão') {
+    installments.classList.remove('d-none');
+    installments.required = true;
+    value.placeholder = 'Valor Total';
+  } else {
+    installments.classList.add('d-none');
+    installments.required = false;
+    installments.value = 1;
+    value.placeholder = 'Valor';
+  }
 }
 
 function togglePaid(e) {
@@ -144,6 +194,8 @@ function init() {
     save();
     render();
   });
+  document.getElementById('payment').addEventListener('change', handlePaymentChange);
+  handlePaymentChange();
   render();
 }
 
