@@ -1,1 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela de Custos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
 
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Tabela de Custos</h2>
+
+    <!-- Resumo -->
+    <div class="row text-center mb-4">
+        <div class="col">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>Saldo Inicial</h5>
+                    <h3 id="saldoInicial">R$ 3.300,00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>Receitas</h5>
+                    <h3 id="receitas">R$ 0,00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5>Despesas</h5>
+                    <h3 id="despesas">R$ 0,00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <h5>Saldo Atual</h5>
+                    <h3 id="saldoAtual">R$ 3.300,00</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário -->
+    <div class="card mb-4">
+        <div class="card-header">Adicionar Lançamento</div>
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-2">
+                    <input type="date" id="data" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" id="categoria" placeholder="Categoria" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" id="subcategoria" placeholder="Subcategoria" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" id="descricao" placeholder="Descrição" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" id="formaPagamento" placeholder="Forma de Pagamento" class="form-control">
+                </div>
+                <div class="col-md-1">
+                    <input type="number" id="valor" placeholder="Valor" class="form-control">
+                </div>
+                <div class="col-md-1">
+                    <select id="pago" class="form-select">
+                        <option value="Sim">Sim</option>
+                        <option value="Não">Não</option>
+                    </select>
+                </div>
+            </div>
+            <div class="text-end mt-3">
+                <button class="btn btn-primary" onclick="adicionarLancamento()">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <table class="table table-striped table-bordered text-center">
+        <thead class="table-dark">
+            <tr>
+                <th>Data</th>
+                <th>Categoria</th>
+                <th>Subcategoria</th>
+                <th>Descrição</th>
+                <th>Forma de Pagamento</th>
+                <th>Valor</th>
+                <th>Pago</th>
+                <th>Saldo</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="tabelaLancamentos"></tbody>
+    </table>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
