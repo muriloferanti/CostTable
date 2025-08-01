@@ -19,7 +19,10 @@
       <li class="nav-item"><a class="nav-link" href="relatorios.html">Relatórios</a></li>
     </ul>
 
-    <div id="monthButtons" class="btn-group mb-3 flex-wrap"></div>
+    <div class="d-flex mb-3">
+      <select id="yearSelect" class="form-select w-auto me-2"></select>
+      <div id="monthButtons" class="btn-group flex-wrap"></div>
+    </div>
 
     <div class="row g-3">
       <div class="col-lg-9">
@@ -106,6 +109,9 @@
           </div>
           <div class="col-md-1 d-flex align-items-center justify-content-center">
             <input type="checkbox" id="paid" name="paid" class="form-check-input" title="Pago?">
+          </div>
+          <div class="col-md-1 d-flex align-items-center justify-content-center">
+            <input type="checkbox" id="recurring" name="recurring" class="form-check-input" title="Recorrente?">
           </div>
           <div class="col-12">
             <button type="submit" class="btn btn-primary w-100">Adicionar</button>

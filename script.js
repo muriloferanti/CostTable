@@ -1,14 +1,50 @@
 const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth();
-let store = JSON.parse(localStorage.getItem('financas-v1') || '{}');
-
-function getMonthData(m) {
-  if(!store[m]) store[m] = { initialBalance: 0, transactions: [] };
-  return store[m];
-}
+let store = JSON.parse(localStorage.getItem('financas-v2') || '{"years":{},"recurring":[]}');
 
 function save() {
-  localStorage.setItem('financas-v1', JSON.stringify(store));
+  localStorage.setItem('financas-v2', JSON.stringify(store));
+}
+
+function getYearData(y) {
+  if(!store.years[y]) store.years[y] = {};
+  return store.years[y];
+}
+
+function ensureRecurringTransactions(year, month, data) {
+  let added = false;
+  store.recurring.forEach(r=>{
+    const start = new Date(r.startDate);
+    const startIdx = start.getFullYear()*12 + start.getMonth();
+    const targetIdx = year*12 + month;
+    if(targetIdx >= startIdx) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(r.day).padStart(2,'0')}`;
+      if(!data.transactions.some(t=>t.recurringId===r.id)) {
+        data.transactions.push({
+          id: Date.now()+Math.random(),
+          date: dateStr,
+          category: 'Receita',
+          subcategory: r.subcategory,
+          description: r.description,
+          payment: r.payment,
+          value: r.value,
+          paid: false,
+          recurringId: r.id
+        });
+        added = true;
+      }
+    }
+  });
+  if(added) save();
+}
+
+function getMonthData(year, m) {
+  const yearData = getYearData(year);
+  if(!yearData[m]) yearData[m] = { initialBalance: 0, transactions: [] };
+  const data = yearData[m];
+  ensureRecurringTransactions(year, m, data);
+  return data;
 }
 
 function formatMoney(v) {
@@ -24,6 +60,23 @@ function addMonths(date, months) {
   const d = new Date(date);
   d.setMonth(d.getMonth() + months);
   return d;
+}
+
+function renderYearSelect() {
+  const select = document.getElementById('yearSelect');
+  if(!select) return;
+  select.innerHTML = '';
+  for(let y=currentYear-5; y<=currentYear+5; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    if(y===currentYear) opt.selected = true;
+    select.appendChild(opt);
+  }
+  select.onchange = ()=> {
+    currentYear = parseInt(select.value,10);
+    render();
+  };
 }
 
 function renderMonthButtons() {
@@ -45,7 +98,7 @@ function renderMonthButtons() {
 function renderTable() {
   const tbody = document.querySelector('#transactionTable tbody');
   tbody.innerHTML = '';
-  const data = getMonthData(currentMonth);
+  const data = getMonthData(currentYear, currentMonth);
   const sorted = [...data.transactions].sort((a,b)=>new Date(a.date) - new Date(b.date));
   let balance = data.initialBalance;
   sorted.forEach(t=>{
@@ -70,7 +123,7 @@ function renderTable() {
 }
 
 function recalc() {
-  const data = getMonthData(currentMonth);
+  const data = getMonthData(currentYear, currentMonth);
   let receitas=0, investimentos=0, despesas=0, cartao=0;
   let receitasPagas=0, investimentosPagos=0, despesasPagas=0;
   data.transactions.forEach(t=>{
@@ -135,10 +188,24 @@ function addTransaction(e) {
         value: valor,
         paid: false
       };
-      const dataMonth = getMonthData(d.getMonth());
+      const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
       dataMonth.transactions.push(t);
     }
   } else {
+    let recurringId;
+    if(form.recurring && form.recurring.checked && form.type.value==='Receita') {
+      const recur = {
+        id: Date.now(),
+        startDate: form.date.value,
+        day: new Date(form.date.value).getDate(),
+        description: form.description.value,
+        payment: form.payment.value,
+        value: parseFloat(form.value.value),
+        subcategory: form.subcategory.value
+      };
+      store.recurring.push(recur);
+      recurringId = recur.id;
+    }
     const t = {
       id: Date.now(),
       date: form.date.value,
@@ -147,9 +214,10 @@ function addTransaction(e) {
       description: form.description.value,
       payment: form.payment.value,
       value: parseFloat(form.value.value),
-      paid: form.paid.checked
+      paid: form.paid.checked,
+      ...(recurringId?{recurringId}: {})
     };
-    const data = getMonthData(currentMonth);
+    const data = getMonthData(currentYear, currentMonth);
     data.transactions.push(t);
   }
   save();
@@ -160,7 +228,16 @@ function addTransaction(e) {
 
 function deleteTransaction(e) {
   const id = Number(e.currentTarget.dataset.id);
-  const data = getMonthData(currentMonth);
+  const data = getMonthData(currentYear, currentMonth);
+  const t = data.transactions.find(tr=>tr.id===id);
+  if(t && t.recurringId) {
+    store.recurring = store.recurring.filter(r=>r.id!==t.recurringId);
+    Object.values(store.years).forEach(yearData=>{
+      Object.values(yearData).forEach(monthData=>{
+        monthData.transactions = monthData.transactions.filter(tr=>tr.recurringId!==t.recurringId);
+      });
+    });
+  }
   data.transactions = data.transactions.filter(t=>t.id!==id);
   save();
   render();
@@ -183,7 +260,7 @@ function handlePaymentChange() {
 
 function togglePaid(e) {
   const id = Number(e.target.dataset.id);
-  const data = getMonthData(currentMonth);
+  const data = getMonthData(currentYear, currentMonth);
   const t = data.transactions.find(t=>t.id===id);
   if(t){
     t.paid = e.target.checked;
@@ -193,10 +270,11 @@ function togglePaid(e) {
 }
 
 function init() {
+  renderYearSelect();
   renderMonthButtons();
   document.getElementById('transactionForm').addEventListener('submit', addTransaction);
   document.getElementById('initialBalance').addEventListener('input', e=>{
-    const data = getMonthData(currentMonth);
+    const data = getMonthData(currentYear, currentMonth);
     data.initialBalance = parseFloat(e.target.value)||0;
     save();
     render();
@@ -208,7 +286,8 @@ function init() {
 
 function render() {
   const balanceInput = document.getElementById('initialBalance');
-  if (balanceInput) balanceInput.value = getMonthData(currentMonth).initialBalance;
+  if (balanceInput) balanceInput.value = getMonthData(currentYear, currentMonth).initialBalance;
+  renderYearSelect();
   renderMonthButtons();
   renderTable();
   recalc();
