@@ -15,6 +15,11 @@ function formatMoney(v) {
   return 'R$ ' + Number(v).toFixed(2);
 }
 
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
 function addMonths(date, months) {
   const d = new Date(date);
   d.setMonth(d.getMonth() + months);
@@ -83,26 +88,28 @@ function recalc() {
   const saldoPrevisto = data.initialBalance + saldoMes;
   const saldoAtual = data.initialBalance + receitasPagas - despesasPagas - investimentosPagos;
 
-  document.getElementById('receitas').textContent = formatMoney(receitas);
-  document.getElementById('investimentos').textContent = formatMoney(investimentos);
-  document.getElementById('despesas').textContent = formatMoney(despesas);
-  document.getElementById('saldoMes').textContent = formatMoney(saldoMes);
-  document.getElementById('faturaCartao').textContent = formatMoney(cartao);
+  setText('receitas', formatMoney(receitas));
+  setText('investimentos', formatMoney(investimentos));
+  setText('despesas', formatMoney(despesas));
+  setText('saldoMes', formatMoney(saldoMes));
+  setText('faturaCartao', formatMoney(cartao));
 
-  document.getElementById('resumoReceitas').textContent = formatMoney(receitas);
-  document.getElementById('resumoInvestimentos').textContent = formatMoney(investimentos);
-  document.getElementById('resumoDespesas').textContent = formatMoney(despesas);
-  document.getElementById('resumoCartao').textContent = formatMoney(cartao);
-  document.getElementById('saldoAtual').textContent = formatMoney(saldoAtual);
-  document.getElementById('saldoPrevisto').textContent = formatMoney(saldoPrevisto);
+  setText('resumoReceitas', formatMoney(receitas));
+  setText('resumoInvestimentos', formatMoney(investimentos));
+  setText('resumoDespesas', formatMoney(despesas));
+  setText('resumoCartao', formatMoney(cartao));
+  setText('saldoAtual', formatMoney(saldoAtual));
+  setText('saldoPrevisto', formatMoney(saldoPrevisto));
 
   const gastos = despesas + investimentos;
   const budget = receitas || 1;
   const percent = Math.min(100, (gastos / budget) * 100);
   const bar = document.getElementById('budgetProgress');
-  bar.style.width = percent + '%';
-  bar.textContent = percent.toFixed(0) + '%';
-  bar.classList.toggle('bg-danger', percent >= 100);
+  if (bar) {
+    bar.style.width = percent + '%';
+    bar.textContent = percent.toFixed(0) + '%';
+    bar.classList.toggle('bg-danger', percent >= 100);
+  }
 }
 
 function addTransaction(e) {
@@ -200,7 +207,8 @@ function init() {
 }
 
 function render() {
-  document.getElementById('initialBalance').value = getMonthData(currentMonth).initialBalance;
+  const balanceInput = document.getElementById('initialBalance');
+  if (balanceInput) balanceInput.value = getMonthData(currentMonth).initialBalance;
   renderMonthButtons();
   renderTable();
   recalc();
