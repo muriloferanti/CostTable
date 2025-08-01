@@ -7,6 +7,37 @@ function save() {
   localStorage.setItem('financas-v2', JSON.stringify(store));
 }
 
+function exportData() {
+  const blob = new Blob([JSON.stringify(store)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'financas.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data && data.years && data.recurring) {
+        store = data;
+        save();
+        render();
+      } else {
+        alert('Arquivo inválido');
+      }
+    } catch (err) {
+      alert('Erro ao importar');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
 function getYearData(y) {
   if(!store.years[y]) store.years[y] = {};
   return store.years[y];
@@ -272,14 +303,25 @@ function togglePaid(e) {
 function init() {
   renderYearSelect();
   renderMonthButtons();
-  document.getElementById('transactionForm').addEventListener('submit', addTransaction);
-  document.getElementById('initialBalance').addEventListener('input', e=>{
+  const form = document.getElementById('transactionForm');
+  if (form) form.addEventListener('submit', addTransaction);
+  const balanceInput = document.getElementById('initialBalance');
+  if (balanceInput) balanceInput.addEventListener('input', e=>{
     const data = getMonthData(currentYear, currentMonth);
     data.initialBalance = parseFloat(e.target.value)||0;
     save();
     render();
   });
-  document.getElementById('payment').addEventListener('change', handlePaymentChange);
+  const paymentSelect = document.getElementById('payment');
+  if (paymentSelect) paymentSelect.addEventListener('change', handlePaymentChange);
+  const exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) exportBtn.addEventListener('click', exportData);
+  const importBtn = document.getElementById('importBtn');
+  const importFile = document.getElementById('importFile');
+  if (importBtn && importFile) {
+    importBtn.addEventListener('click', () => importFile.click());
+    importFile.addEventListener('change', importData);
+  }
   handlePaymentChange();
   render();
 }
