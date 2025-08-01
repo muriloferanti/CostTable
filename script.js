@@ -24,7 +24,7 @@ function ensureRecurringTransactions(year, month, data) {
         data.transactions.push({
           id: Date.now()+Math.random(),
           date: dateStr,
-          category: 'Receita',
+          category: 'Receita Recorrente',
           subcategory: r.subcategory,
           description: r.description,
           payment: r.payment,
@@ -99,20 +99,20 @@ function renderTable() {
   const tbody = document.querySelector('#transactionTable tbody');
   tbody.innerHTML = '';
   const data = getMonthData(currentYear, currentMonth);
-  const sorted = [...data.transactions].sort((a,b)=>new Date(a.date) - new Date(b.date));
-  let balance = data.initialBalance;
-  sorted.forEach(t=>{
-    const tr = document.createElement('tr');
-    if(!t.paid) tr.classList.add('not-paid');
-    const value = Number(t.value);
-    if(t.category === 'Receita') balance += value; else balance -= value;
-    tr.innerHTML = `
+    const sorted = [...data.transactions].sort((a,b)=>new Date(a.date) - new Date(b.date));
+    let balance = data.initialBalance;
+    sorted.forEach(t=>{
+      const tr = document.createElement('tr');
+      if(!t.paid) tr.classList.add('not-paid');
+      const value = Number(t.value);
+      if(t.category === 'Receita' || t.category === 'Receita Recorrente') balance += value; else balance -= value;
+      tr.innerHTML = `
       <td>${t.date}</td>
       <td>${t.category}</td>
       <td>${t.subcategory || ''}</td>
       <td>${t.description || ''}</td>
       <td>${t.payment || ''}</td>
-      <td class="${t.category==='Receita'?'value-income':'value-expense'}">${formatMoney(value)}</td>
+      <td class="${(t.category==='Receita' || t.category==='Receita Recorrente')?'value-income':'value-expense'}">${formatMoney(value)}</td>
       <td class="text-center"><input type="checkbox" class="form-check-input paid-toggle" data-id="${t.id}" ${t.paid?'checked':''}></td>
       <td>${formatMoney(balance)}</td>
       <td><button class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}"><i class="bi bi-trash"></i></button></td>`;
@@ -128,7 +128,7 @@ function recalc() {
   let receitasPagas=0, investimentosPagos=0, despesasPagas=0;
   data.transactions.forEach(t=>{
     const v = Number(t.value);
-    if(t.category==='Receita') {
+    if(t.category==='Receita' || t.category==='Receita Recorrente') {
       receitas+=v; if(t.paid) receitasPagas+=v;
     } else if(t.category==='Investimento') {
       investimentos+=v; if(t.paid) investimentosPagos+=v;
@@ -193,7 +193,7 @@ function addTransaction(e) {
     }
   } else {
     let recurringId;
-    if(form.recurring && form.recurring.checked && form.type.value==='Receita') {
+    if(form.type.value==='Receita Recorrente') {
       const recur = {
         id: Date.now(),
         startDate: form.date.value,
