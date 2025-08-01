@@ -207,7 +207,7 @@ function addTransaction(e) {
     for(let i=0;i<parcelas;i++) {
       const valor = i === parcelas-1 ? restante : base;
       restante -= base;
-      const d = addMonths(form.date.value, i);
+      const d = addMonths(form.date.value, i + 1);
       const dateStr = d.toISOString().split('T')[0];
       const t = {
         id: Date.now()+i,
