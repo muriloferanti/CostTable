@@ -236,62 +236,115 @@ function addTransaction(e) {
     render();
     return;
   }
-  if(form.payment.value === 'Cartão') {
-    const total = parseFloat(form.value.value);
-    const parcelas = parseInt(form.installments.value) || 1;
-    const base = Math.floor((total / parcelas) * 100) / 100;
-    let restante = total;
+  const paymentType = form.payment.value;
+  const total = parseFloat(form.value.value);
+  const parcelas = parseInt(form.installments.value) || 1;
+  const valorParcela = parseFloat(form.installmentValue.value);
+  if((paymentType === 'Cartão' || paymentType === 'Emprestimo') && isNaN(total) && isNaN(valorParcela)) {
+    alert('Informe o valor total ou da parcela');
+    return;
+  }
+  if(paymentType !== 'Cartão' && paymentType !== 'Emprestimo' && isNaN(total)) {
+    alert('Informe o valor');
+    return;
+  }
+  if(paymentType === 'Cartão') {
     const groupId = Date.now();
-    for(let i=0;i<parcelas;i++) {
-      const valor = i === parcelas-1 ? restante : base;
-      restante -= base;
-      const d = addMonths(form.date.value, i + 1);
-      const dateStr = d.toISOString().split('T')[0];
-      const t = {
-        id: groupId + i,
-        date: dateStr,
-        category: form.type.value,
-        subcategory: form.subcategory.value,
-        description: `${form.description.value || ''} (${i+1}/${parcelas})`,
-        payment: form.payment.value,
-        value: valor,
-        paid: false,
-        installmentId: groupId,
-        installmentNumber: i + 1,
-        installments: parcelas
-      };
-      const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
-      dataMonth.transactions.push(t);
+    if(!isNaN(valorParcela)) {
+      for(let i=0;i<parcelas;i++) {
+        const d = addMonths(form.date.value, i + 1);
+        const dateStr = d.toISOString().split('T')[0];
+        const t = {
+          id: groupId + i,
+          date: dateStr,
+          category: form.type.value,
+          subcategory: form.subcategory.value,
+          description: `${form.description.value || ''} (${i+1}/${parcelas})`,
+          payment: paymentType,
+          value: valorParcela,
+          paid: false,
+          installmentId: groupId,
+          installmentNumber: i + 1,
+          installments: parcelas
+        };
+        const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
+        dataMonth.transactions.push(t);
+      }
+    } else {
+      const base = Math.floor((total / parcelas) * 100) / 100;
+      let restante = total;
+      for(let i=0;i<parcelas;i++) {
+        const valor = i === parcelas-1 ? restante : base;
+        restante -= base;
+        const d = addMonths(form.date.value, i + 1);
+        const dateStr = d.toISOString().split('T')[0];
+        const t = {
+          id: groupId + i,
+          date: dateStr,
+          category: form.type.value,
+          subcategory: form.subcategory.value,
+          description: `${form.description.value || ''} (${i+1}/${parcelas})`,
+          payment: paymentType,
+          value: valor,
+          paid: false,
+          installmentId: groupId,
+          installmentNumber: i + 1,
+          installments: parcelas
+        };
+        const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
+        dataMonth.transactions.push(t);
+      }
     }
-  } else if(form.payment.value === 'Emprestimo') {
-    const principal = parseFloat(form.value.value);
-    const parcelas = parseInt(form.installments.value) || 1;
-    const rate = parseFloat(form.interest.value) / 100 || 0;
+  } else if(paymentType === 'Emprestimo') {
     const groupId = Date.now();
-    const monthly = rate ? principal * rate / (1 - Math.pow(1 + rate, -parcelas)) : principal / parcelas;
-    let balance = principal;
-    for(let i=0;i<parcelas;i++) {
-      const interestPortion = Math.round(balance * rate * 100) / 100;
-      let valor = Math.round(monthly * 100) / 100;
-      if(i === parcelas-1) valor = Math.round((balance + interestPortion) * 100) / 100;
-      balance = Math.round((balance + interestPortion - valor) * 100) / 100;
-      const d = addMonths(form.date.value, i + 1);
-      const dateStr = d.toISOString().split('T')[0];
-      const t = {
-        id: groupId + i,
-        date: dateStr,
-        category: form.type.value,
-        subcategory: form.subcategory.value,
-        description: `${form.description.value || ''} (${i+1}/${parcelas})`,
-        payment: form.payment.value,
-        value: valor,
-        paid: false,
-        installmentId: groupId,
-        installmentNumber: i + 1,
-        installments: parcelas
-      };
-      const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
-      dataMonth.transactions.push(t);
+    if(!isNaN(valorParcela)) {
+      for(let i=0;i<parcelas;i++) {
+        const d = addMonths(form.date.value, i + 1);
+        const dateStr = d.toISOString().split('T')[0];
+        const t = {
+          id: groupId + i,
+          date: dateStr,
+          category: form.type.value,
+          subcategory: form.subcategory.value,
+          description: `${form.description.value || ''} (${i+1}/${parcelas})`,
+          payment: paymentType,
+          value: valorParcela,
+          paid: false,
+          installmentId: groupId,
+          installmentNumber: i + 1,
+          installments: parcelas
+        };
+        const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
+        dataMonth.transactions.push(t);
+      }
+    } else {
+      const principal = total;
+      const rate = parseFloat(form.interest.value) / 100 || 0;
+      const monthly = rate ? principal * rate / (1 - Math.pow(1 + rate, -parcelas)) : principal / parcelas;
+      let balance = principal;
+      for(let i=0;i<parcelas;i++) {
+        const interestPortion = Math.round(balance * rate * 100) / 100;
+        let valor = Math.round(monthly * 100) / 100;
+        if(i === parcelas-1) valor = Math.round((balance + interestPortion) * 100) / 100;
+        balance = Math.round((balance + interestPortion - valor) * 100) / 100;
+        const d = addMonths(form.date.value, i + 1);
+        const dateStr = d.toISOString().split('T')[0];
+        const t = {
+          id: groupId + i,
+          date: dateStr,
+          category: form.type.value,
+          subcategory: form.subcategory.value,
+          description: `${form.description.value || ''} (${i+1}/${parcelas})`,
+          payment: paymentType,
+          value: valor,
+          paid: false,
+          installmentId: groupId,
+          installmentNumber: i + 1,
+          installments: parcelas
+        };
+        const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
+        dataMonth.transactions.push(t);
+      }
     }
   } else {
     let recurringId;
@@ -376,12 +429,15 @@ function deleteTransaction(e) {
 
 function handlePaymentChange() {
   const installments = document.getElementById('installments');
+  const installmentValue = document.getElementById('installmentValue');
   const value = document.getElementById('value');
   const interest = document.getElementById('interest');
   const payment = document.getElementById('payment').value;
   if(payment === 'Cartão' || payment === 'Emprestimo') {
     installments.classList.remove('d-none');
     installments.required = true;
+    if(installmentValue) installmentValue.classList.remove('d-none');
+    value.required = false;
     if(payment === 'Emprestimo') {
       if(interest){
         interest.classList.remove('d-none');
@@ -400,7 +456,12 @@ function handlePaymentChange() {
     installments.classList.add('d-none');
     installments.required = false;
     installments.value = 1;
+    if(installmentValue){
+      installmentValue.classList.add('d-none');
+      installmentValue.value = '';
+    }
     value.placeholder = 'Valor';
+    value.required = true;
     if(interest){
       interest.classList.add('d-none');
       interest.required = false;
