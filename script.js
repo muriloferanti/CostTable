@@ -204,20 +204,24 @@ function addTransaction(e) {
     const parcelas = parseInt(form.installments.value) || 1;
     const base = Math.floor((total / parcelas) * 100) / 100;
     let restante = total;
+    const groupId = Date.now();
     for(let i=0;i<parcelas;i++) {
       const valor = i === parcelas-1 ? restante : base;
       restante -= base;
       const d = addMonths(form.date.value, i + 1);
       const dateStr = d.toISOString().split('T')[0];
       const t = {
-        id: Date.now()+i,
+        id: groupId + i,
         date: dateStr,
         category: form.type.value,
         subcategory: form.subcategory.value,
         description: `${form.description.value || ''} (${i+1}/${parcelas})`,
         payment: form.payment.value,
         value: valor,
-        paid: false
+        paid: false,
+        installmentId: groupId,
+        installmentNumber: i + 1,
+        installments: parcelas
       };
       const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
       dataMonth.transactions.push(t);
@@ -261,7 +265,8 @@ function deleteTransaction(e) {
   const id = Number(e.currentTarget.dataset.id);
   const data = getMonthData(currentYear, currentMonth);
   const t = data.transactions.find(tr=>tr.id===id);
-  if(t && t.recurringId) {
+  if(!t) return;
+  if(t.recurringId) {
     store.recurring = store.recurring.filter(r=>r.id!==t.recurringId);
     Object.values(store.years).forEach(yearData=>{
       Object.values(yearData).forEach(monthData=>{
@@ -269,7 +274,15 @@ function deleteTransaction(e) {
       });
     });
   }
-  data.transactions = data.transactions.filter(t=>t.id!==id);
+  if(t.installmentId && t.installmentNumber === 1) {
+    if(!confirm('Deseja excluir todas as parcelas desta despesa?')) return;
+    Object.values(store.years).forEach(yearData=>{
+      Object.values(yearData).forEach(monthData=>{
+        monthData.transactions = monthData.transactions.filter(tr=>tr.installmentId!==t.installmentId);
+      });
+    });
+  }
+  data.transactions = data.transactions.filter(tr=>tr.id!==id);
   save();
   render();
 }
