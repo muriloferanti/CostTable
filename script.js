@@ -2,6 +2,7 @@ const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov
 let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth();
 let store = JSON.parse(localStorage.getItem('financas-v2') || '{"years":{},"recurring":[]}');
+let editing = null;
 
 function save() {
   localStorage.setItem('financas-v2', JSON.stringify(store));
@@ -146,11 +147,15 @@ function renderTable() {
       <td class="${(t.category==='Receita' || t.category==='Receita Recorrente')?'value-income':'value-expense'}">${formatMoney(value)}</td>
       <td class="text-center"><input type="checkbox" class="form-check-input paid-toggle" data-id="${t.id}" ${t.paid?'checked':''}></td>
       <td>${formatMoney(balance)}</td>
-      <td><button class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}"><i class="bi bi-trash"></i></button></td>`;
+      <td>
+        ${(!t.recurringId && !t.installmentId && t.category==='Despesa')?`<button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${t.id}"><i class="bi bi-pencil"></i></button>`:''}
+        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}"><i class="bi bi-trash"></i></button>
+      </td>`;
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('.delete-btn').forEach(b=>b.addEventListener('click', deleteTransaction));
   tbody.querySelectorAll('.paid-toggle').forEach(c=>c.addEventListener('change', togglePaid));
+  tbody.querySelectorAll('.edit-btn').forEach(b=>b.addEventListener('click', startEditTransaction));
 }
 
 function recalc() {
@@ -199,6 +204,38 @@ function recalc() {
 function addTransaction(e) {
   e.preventDefault();
   const form = e.target;
+  if(editing) {
+    const { id, year, month } = editing;
+    const oldData = getMonthData(year, month);
+    const t = oldData.transactions.find(tr=>tr.id===id);
+    if(t) {
+      const newDate = new Date(form.date.value);
+      const newYear = newDate.getFullYear();
+      const newMonth = newDate.getMonth();
+      Object.assign(t, {
+        date: form.date.value,
+        category: form.type.value,
+        subcategory: form.subcategory.value,
+        description: form.description.value,
+        payment: form.payment.value,
+        value: parseFloat(form.value.value),
+        paid: form.paid.checked
+      });
+      if(newYear !== year || newMonth !== month) {
+        oldData.transactions = oldData.transactions.filter(tr=>tr.id!==id);
+        const newData = getMonthData(newYear, newMonth);
+        newData.transactions.push(t);
+      }
+      save();
+    }
+    editing = null;
+    form.reset();
+    handlePaymentChange();
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if(submitBtn) submitBtn.textContent = 'Adicionar';
+    render();
+    return;
+  }
   if(form.payment.value === 'Cartão') {
     const total = parseFloat(form.value.value);
     const parcelas = parseInt(form.installments.value) || 1;
@@ -259,6 +296,26 @@ function addTransaction(e) {
   form.reset();
   handlePaymentChange();
   render();
+}
+
+function startEditTransaction(e) {
+  const id = Number(e.currentTarget.dataset.id);
+  const data = getMonthData(currentYear, currentMonth);
+  const t = data.transactions.find(tr=>tr.id===id);
+  if(!t) return;
+  editing = { id, year: currentYear, month: currentMonth };
+  const form = document.getElementById('transactionForm');
+  if(!form) return;
+  form.date.value = t.date;
+  form.type.value = t.category;
+  form.subcategory.value = t.subcategory || '';
+  form.description.value = t.description || '';
+  form.payment.value = t.payment || '';
+  form.value.value = t.value;
+  form.paid.checked = !!t.paid;
+  handlePaymentChange();
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if(submitBtn) submitBtn.textContent = 'Salvar';
 }
 
 function deleteTransaction(e) {
