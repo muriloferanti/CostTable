@@ -51,8 +51,9 @@ function ensureRecurringTransactions(year, month, data) {
     const start = new Date(r.startDate);
     const startIdx = start.getFullYear()*12 + start.getMonth();
     const targetIdx = year*12 + month;
-    if(targetIdx >= startIdx) {
-      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(r.day).padStart(2,'0')}`;
+    const monthKey = `${year}-${String(month+1).padStart(2,'0')}`;
+    if(targetIdx >= startIdx && !(r.exceptions && r.exceptions.includes(monthKey))) {
+      const dateStr = `${monthKey}-${String(r.day).padStart(2,'0')}`;
       if(!data.transactions.some(t=>t.recurringId===r.id)) {
         data.transactions.push({
           id: Date.now()+Math.random(),
@@ -430,7 +431,8 @@ function addTransaction(e) {
         description: form.description.value,
         payment: form.payment.value,
         value: parseFloat(form.value.value),
-        subcategory: form.subcategory.value
+        subcategory: form.subcategory.value,
+        exceptions: []
       };
       store.recurring.push(recur);
       recurringId = recur.id;
@@ -480,21 +482,42 @@ function deleteTransaction(e) {
   const data = getMonthData(currentYear, currentMonth);
   const t = data.transactions.find(tr=>tr.id===id);
   if(!t) return;
+  const monthKey = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
   if(t.recurringId) {
-    store.recurring = store.recurring.filter(r=>r.id!==t.recurringId);
-    Object.values(store.years).forEach(yearData=>{
-      Object.values(yearData).forEach(monthData=>{
-        monthData.transactions = monthData.transactions.filter(tr=>tr.recurringId!==t.recurringId);
+    const removeAll = confirm('Excluir este lançamento recorrente de todos os meses? Clique em OK para todos, ou Cancelar para apenas este mês.');
+    if(removeAll) {
+      store.recurring = store.recurring.filter(r=>r.id!==t.recurringId);
+      Object.values(store.years).forEach(yearData=>{
+        Object.values(yearData).forEach(monthData=>{
+          monthData.transactions = monthData.transactions.filter(tr=>tr.recurringId!==t.recurringId);
+        });
       });
-    });
+    } else {
+      const recur = store.recurring.find(r=>r.id===t.recurringId);
+      if(recur) {
+        if(!recur.exceptions) recur.exceptions = [];
+        if(!recur.exceptions.includes(monthKey)) recur.exceptions.push(monthKey);
+      }
+      data.transactions = data.transactions.filter(tr=>tr.id!==id);
+    }
+    save();
+    render();
+    return;
   }
-  if(t.installmentId && t.installmentNumber === 1) {
-    if(!confirm('Deseja excluir todas as parcelas desta despesa?')) return;
-    Object.values(store.years).forEach(yearData=>{
-      Object.values(yearData).forEach(monthData=>{
-        monthData.transactions = monthData.transactions.filter(tr=>tr.installmentId!==t.installmentId);
+  if(t.installmentId) {
+    const removeAll = confirm('Excluir todas as parcelas desta despesa? Clique em OK para todas, ou Cancelar para apenas esta.');
+    if(removeAll) {
+      Object.values(store.years).forEach(yearData=>{
+        Object.values(yearData).forEach(monthData=>{
+          monthData.transactions = monthData.transactions.filter(tr=>tr.installmentId!==t.installmentId);
+        });
       });
-    });
+    } else {
+      data.transactions = data.transactions.filter(tr=>tr.id!==id);
+    }
+    save();
+    render();
+    return;
   }
   data.transactions = data.transactions.filter(tr=>tr.id!==id);
   save();
@@ -515,7 +538,7 @@ function handlePaymentChange() {
     if(payment === 'Emprestimo') {
       if(interest){
         interest.classList.remove('d-none');
-        interest.required = true;
+        interest.required = false;
       }
       value.placeholder = 'Valor do Empréstimo';
     } else {
