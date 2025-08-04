@@ -263,6 +263,36 @@ function addTransaction(e) {
       const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
       dataMonth.transactions.push(t);
     }
+  } else if(form.payment.value === 'Emprestimo') {
+    const principal = parseFloat(form.value.value);
+    const parcelas = parseInt(form.installments.value) || 1;
+    const rate = parseFloat(form.interest.value) / 100 || 0;
+    const groupId = Date.now();
+    const monthly = rate ? principal * rate / (1 - Math.pow(1 + rate, -parcelas)) : principal / parcelas;
+    let balance = principal;
+    for(let i=0;i<parcelas;i++) {
+      const interestPortion = Math.round(balance * rate * 100) / 100;
+      let valor = Math.round(monthly * 100) / 100;
+      if(i === parcelas-1) valor = Math.round((balance + interestPortion) * 100) / 100;
+      balance = Math.round((balance + interestPortion - valor) * 100) / 100;
+      const d = addMonths(form.date.value, i + 1);
+      const dateStr = d.toISOString().split('T')[0];
+      const t = {
+        id: groupId + i,
+        date: dateStr,
+        category: form.type.value,
+        subcategory: form.subcategory.value,
+        description: `${form.description.value || ''} (${i+1}/${parcelas})`,
+        payment: form.payment.value,
+        value: valor,
+        paid: false,
+        installmentId: groupId,
+        installmentNumber: i + 1,
+        installments: parcelas
+      };
+      const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
+      dataMonth.transactions.push(t);
+    }
   } else {
     let recurringId;
     if(form.type.value==='Receita Recorrente') {
@@ -347,15 +377,35 @@ function deleteTransaction(e) {
 function handlePaymentChange() {
   const installments = document.getElementById('installments');
   const value = document.getElementById('value');
-  if(document.getElementById('payment').value === 'Cartão') {
+  const interest = document.getElementById('interest');
+  const payment = document.getElementById('payment').value;
+  if(payment === 'Cartão' || payment === 'Emprestimo') {
     installments.classList.remove('d-none');
     installments.required = true;
-    value.placeholder = 'Valor Total';
+    if(payment === 'Emprestimo') {
+      if(interest){
+        interest.classList.remove('d-none');
+        interest.required = true;
+      }
+      value.placeholder = 'Valor do Empréstimo';
+    } else {
+      if(interest){
+        interest.classList.add('d-none');
+        interest.required = false;
+        interest.value = '';
+      }
+      value.placeholder = 'Valor Total';
+    }
   } else {
     installments.classList.add('d-none');
     installments.required = false;
     installments.value = 1;
     value.placeholder = 'Valor';
+    if(interest){
+      interest.classList.add('d-none');
+      interest.required = false;
+      interest.value = '';
+    }
   }
 }
 
