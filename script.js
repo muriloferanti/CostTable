@@ -152,7 +152,8 @@ function renderTable() {
       <td class="text-center"><input type="checkbox" class="form-check-input paid-toggle" data-id="${t.id}" ${t.paid?'checked':''}></td>
       <td>${formatMoney(balance)}</td>
       <td>
-        ${(!t.recurringId && !t.installmentId && t.category==='Despesa')?`<button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${t.id}"><i class="bi bi-pencil"></i></button>`:''}
+        ${( (!t.recurringId && !t.installmentId && t.category==='Despesa') || t.category==='Receita Recorrente')
+          ?`<button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${t.id}"><i class="bi bi-pencil"></i></button>`:''}
         <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}"><i class="bi bi-trash"></i></button>
       </td>`;
     tbody.appendChild(tr);
@@ -422,6 +423,7 @@ function addTransaction(e) {
       }
     }
   } else {
+    const data = getMonthData(currentYear, currentMonth);
     let recurringId;
     if(form.type.value==='Receita Recorrente') {
       const recur = {
@@ -448,7 +450,6 @@ function addTransaction(e) {
       paid: form.paid.checked,
       ...(recurringId?{recurringId}: {})
     };
-    const data = getMonthData(currentYear, currentMonth);
     data.transactions.push(t);
   }
   save();
@@ -493,12 +494,17 @@ function deleteTransaction(e) {
         });
       });
     } else {
-      const recur = store.recurring.find(r=>r.id===t.recurringId);
-      if(recur) {
-        if(!recur.exceptions) recur.exceptions = [];
-        if(!recur.exceptions.includes(monthKey)) recur.exceptions.push(monthKey);
+      const duplicates = data.transactions.filter(tr=>tr.recurringId===t.recurringId);
+      if(duplicates.length > 1) {
+        data.transactions = data.transactions.filter(tr=>tr.id!==id);
+      } else {
+        const recur = store.recurring.find(r=>r.id===t.recurringId);
+        if(recur) {
+          if(!recur.exceptions) recur.exceptions = [];
+          if(!recur.exceptions.includes(monthKey)) recur.exceptions.push(monthKey);
+        }
+        data.transactions = data.transactions.filter(tr=>tr.id!==id);
       }
-      data.transactions = data.transactions.filter(tr=>tr.id!==id);
     }
     save();
     render();
