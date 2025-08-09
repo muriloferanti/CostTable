@@ -1,4 +1,4 @@
-import { currentYear, currentMonth, store, save, exportData, importData, getMonthData, renderYearSelect, renderMonthButtons, formatMoney, setText, addMonths } from './common.js';
+import { currentYear, currentMonth, store, save, exportData, importData, getMonthData, getBudgetData, renderYearSelect, renderMonthButtons, formatMoney, setText, addMonths } from './common.js';
 
 let editing = null;
 
@@ -67,7 +67,7 @@ function recalc(){
   setText('saldoPrevisto', formatMoney(saldoPrevisto));
 
   const gastos = despesas + investimentos;
-  const budget = receitas || 1;
+  const budget = getBudgetData(currentYear, currentMonth).reduce((sum, b) => sum + Number(b.amount), 0) || 1;
   const percent = Math.min(100, (gastos / budget) * 100);
   const bar = document.getElementById('budgetProgress');
   if (bar) {

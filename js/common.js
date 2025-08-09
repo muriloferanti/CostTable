@@ -128,3 +128,10 @@ export function renderMonthButtons(render){
     container.appendChild(btn);
   });
 }
+
+export function getBudgetData(year, month){
+  const yearData = getYearData(year);
+  if(!yearData.budgets) yearData.budgets = {};
+  if(!yearData.budgets[month]) yearData.budgets[month] = [];
+  return yearData.budgets[month];
+}
