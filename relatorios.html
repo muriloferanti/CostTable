@@ -12,16 +12,51 @@
   <div class="container-fluid py-3">
     <ul class="nav nav-tabs mb-3">
       <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
-      <li class="nav-item"><a class="nav-link" href="categorias.html">Categorias</a></li>
       <li class="nav-item"><a class="nav-link" href="orcamento.html">Orçamento</a></li>
       <li class="nav-item"><a class="nav-link" href="lancamentos.html">Lançamentos</a></li>
       <li class="nav-item"><a class="nav-link active" href="relatorios.html">Relatórios</a></li>
     </ul>
 
-    <div class="p-4 bg-white rounded shadow-sm">
-      <h1 class="h4">Relatórios</h1>
-      <p>Geração de relatórios financeiros.</p>
+    <div class="d-flex mb-3">
+      <select id="yearSelect" class="form-select w-auto me-2"></select>
+      <div id="monthButtons" class="btn-group flex-wrap me-2"></div>
+      <select id="typeFilter" class="form-select w-auto">
+        <option value="Todos">Todos</option>
+        <option value="Receita">Receitas</option>
+        <option value="Despesa">Despesas</option>
+        <option value="Investimento">Investimentos</option>
+      </select>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Receitas x Despesas x Investimentos</h5>
+            <canvas id="reportChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Saldo Mensal</h5>
+            <canvas id="reportSaldoChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Categorias</h5>
+            <canvas id="reportPieChart"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
