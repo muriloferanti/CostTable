@@ -423,13 +423,14 @@ function addTransaction(e) {
       }
     }
   } else {
-    const data = getMonthData(currentYear, currentMonth);
+    const newDate = new Date(form.date.value);
+    const data = getMonthData(newDate.getFullYear(), newDate.getMonth());
     let recurringId;
     if(form.type.value==='Receita Recorrente') {
       const recur = {
         id: Date.now(),
         startDate: form.date.value,
-        day: new Date(form.date.value).getDate(),
+        day: newDate.getDate(),
         description: form.description.value,
         payment: form.payment.value,
         value: parseFloat(form.value.value),
