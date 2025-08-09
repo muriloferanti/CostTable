@@ -1,149 +1,20 @@
-const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-let currentYear = new Date().getFullYear();
-let currentMonth = new Date().getMonth();
-let store = JSON.parse(localStorage.getItem('financas-v2') || '{"years":{},"recurring":[]}');
+import { currentYear, currentMonth, store, save, exportData, importData, getMonthData, renderYearSelect, renderMonthButtons, formatMoney, setText, addMonths } from './common.js';
+
 let editing = null;
-let chartReceitasDespesas, chartSaldo, chartCategorias;
-let reportChart, reportSaldoChart, reportPieChart;
 
-function save() {
-  localStorage.setItem('financas-v2', JSON.stringify(store));
-}
-
-function exportData() {
-  const blob = new Blob([JSON.stringify(store)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'financas.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function importData(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      if (data && data.years && data.recurring) {
-        store = data;
-        save();
-        render();
-      } else {
-        alert('Arquivo inválido');
-      }
-    } catch (err) {
-      alert('Erro ao importar');
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-}
-
-function getYearData(y) {
-  if(!store.years[y]) store.years[y] = {};
-  return store.years[y];
-}
-
-function ensureRecurringTransactions(year, month, data) {
-  let added = false;
-  store.recurring.forEach(r=>{
-    const start = new Date(r.startDate);
-    const startIdx = start.getFullYear()*12 + start.getMonth();
-    const targetIdx = year*12 + month;
-    const monthKey = `${year}-${String(month+1).padStart(2,'0')}`;
-    if(targetIdx >= startIdx && !(r.exceptions && r.exceptions.includes(monthKey))) {
-      const dateStr = `${monthKey}-${String(r.day).padStart(2,'0')}`;
-      if(!data.transactions.some(t=>t.recurringId===r.id)) {
-        data.transactions.push({
-          id: Date.now()+Math.random(),
-          date: dateStr,
-          category: 'Receita Recorrente',
-          subcategory: r.subcategory,
-          description: r.description,
-          payment: r.payment,
-          value: r.value,
-          paid: false,
-          recurringId: r.id
-        });
-        added = true;
-      }
-    }
-  });
-  if(added) save();
-}
-
-function getMonthData(year, m) {
-  const yearData = getYearData(year);
-  if(!yearData[m]) yearData[m] = { initialBalance: 0, transactions: [] };
-  const data = yearData[m];
-  ensureRecurringTransactions(year, m, data);
-  return data;
-}
-
-function formatMoney(v) {
-  return 'R$ ' + Number(v).toFixed(2);
-}
-
-function setText(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
-}
-
-function addMonths(date, months) {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + months);
-  return d;
-}
-
-function renderYearSelect() {
-  const select = document.getElementById('yearSelect');
-  if(!select) return;
-  select.innerHTML = '';
-  for(let y=currentYear-5; y<=currentYear+5; y++) {
-    const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = y;
-    if(y===currentYear) opt.selected = true;
-    select.appendChild(opt);
-  }
-  select.onchange = ()=> {
-    currentYear = parseInt(select.value,10);
-    render();
-  };
-}
-
-function renderMonthButtons() {
-  const container = document.getElementById('monthButtons');
-  if(!container) return;
-  container.innerHTML = '';
-  months.forEach((m,i)=>{
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-outline-primary month-btn'+(i===currentMonth?' active':'');
-    btn.textContent = m.toUpperCase();
-    btn.dataset.month = i;
-    btn.addEventListener('click', ()=>{
-      currentMonth = i;
-      render();
-    });
-    container.appendChild(btn);
-  });
-}
-
-function renderTable() {
+function renderTable(){
   const tbody = document.querySelector('#transactionTable tbody');
   if(!tbody) return;
   tbody.innerHTML = '';
   const data = getMonthData(currentYear, currentMonth);
-    const sorted = [...data.transactions].sort((a,b)=>new Date(a.date) - new Date(b.date));
-    let balance = data.initialBalance;
-    sorted.forEach(t=>{
-      const tr = document.createElement('tr');
-      if(!t.paid) tr.classList.add('not-paid');
-      const value = Number(t.value);
-      if(t.category === 'Receita' || t.category === 'Receita Recorrente') balance += value; else balance -= value;
-      tr.innerHTML = `
+  const sorted = [...data.transactions].sort((a,b)=>new Date(a.date) - new Date(b.date));
+  let balance = data.initialBalance;
+  sorted.forEach(t=>{
+    const tr = document.createElement('tr');
+    if(!t.paid) tr.classList.add('not-paid');
+    const value = Number(t.value);
+    if(t.category === 'Receita' || t.category === 'Receita Recorrente') balance += value; else balance -= value;
+    tr.innerHTML = `
       <td>${t.date}</td>
       <td>${t.category}</td>
       <td>${t.subcategory || ''}</td>
@@ -153,8 +24,7 @@ function renderTable() {
       <td class="text-center"><input type="checkbox" class="form-check-input paid-toggle" data-id="${t.id}" ${t.paid?'checked':''}></td>
       <td>${formatMoney(balance)}</td>
       <td>
-        ${( (!t.recurringId && !t.installmentId && t.category==='Despesa') || t.category==='Receita Recorrente')
-          ?`<button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${t.id}"><i class="bi bi-pencil"></i></button>`:''}
+        ${((!t.recurringId && !t.installmentId && t.category==='Despesa') || t.category==='Receita Recorrente') ? `<button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${t.id}"><i class="bi bi-pencil"></i></button>`:''}
         <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}"><i class="bi bi-trash"></i></button>
       </td>`;
     tbody.appendChild(tr);
@@ -164,7 +34,7 @@ function renderTable() {
   tbody.querySelectorAll('.edit-btn').forEach(b=>b.addEventListener('click', startEditTransaction));
 }
 
-function recalc() {
+function recalc(){
   const data = getMonthData(currentYear, currentMonth);
   let receitas=0, investimentos=0, despesas=0, cartao=0;
   let receitasPagas=0, investimentosPagos=0, despesasPagas=0;
@@ -207,162 +77,14 @@ function recalc() {
   }
 }
 
-function renderDashboard() {
-  const barCtx = document.getElementById('chartReceitasDespesas');
-  if(!barCtx) return;
-
-  const yearData = getYearData(currentYear);
-  const receitas = [], despesas = [], investimentos = [], saldos = [];
-  for(let m=0; m<12; m++){
-    const md = yearData[m];
-    let r=0, d=0, i=0;
-    if(md){
-      md.transactions.forEach(t=>{
-        const v = Number(t.value);
-        if(t.category==='Receita' || t.category==='Receita Recorrente') r+=v;
-        else if(t.category==='Investimento') i+=v;
-        else d+=v;
-      });
-    }
-    receitas.push(r);
-    despesas.push(d);
-    investimentos.push(i);
-    saldos.push(r - d - i);
-  }
-
-  if(chartReceitasDespesas) chartReceitasDespesas.destroy();
-  chartReceitasDespesas = new Chart(barCtx, {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: [
-        { label: 'Receitas', data: receitas, backgroundColor: 'rgba(75, 192, 192, 0.5)' },
-        { label: 'Despesas', data: despesas, backgroundColor: 'rgba(255, 99, 132, 0.5)' },
-        { label: 'Investimentos', data: investimentos, backgroundColor: 'rgba(54, 162, 235, 0.5)' }
-      ]
-    }
-  });
-
-  const lineCtx = document.getElementById('chartSaldo');
-  if(lineCtx){
-    if(chartSaldo) chartSaldo.destroy();
-    chartSaldo = new Chart(lineCtx, {
-      type: 'line',
-      data: {
-        labels: months,
-        datasets: [{ label: 'Saldo', data: saldos, borderColor: 'rgba(75, 192, 192, 1)', fill: false }]
-      }
-    });
-  }
-
-  const pieCtx = document.getElementById('chartCategorias');
-  if(pieCtx){
-    const monthData = getMonthData(currentYear, currentMonth);
-    const catTotals = {};
-    monthData.transactions.forEach(t=>{
-      if(t.category==='Despesa'){
-        const key = t.subcategory || 'Outras';
-        catTotals[key] = (catTotals[key]||0) + Number(t.value);
-      }
-    });
-    const labels = Object.keys(catTotals);
-    const values = Object.values(catTotals);
-    const palette = ['#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff','#ff9f40','#c9cbcf'];
-    const colors = labels.map((_,i)=>palette[i%palette.length]);
-    if(chartCategorias) chartCategorias.destroy();
-    chartCategorias = new Chart(pieCtx, {
-      type: 'pie',
-      data: { labels, datasets: [{ data: values, backgroundColor: colors }] },
-      options: { plugins: { legend: { position: 'bottom' } } }
-    });
-  }
-}
-
-
-function renderReports() {
-  const filterSelect = document.getElementById('typeFilter');
-  if(!filterSelect) return;
-  const filter = filterSelect.value;
-  const yearData = getYearData(currentYear);
-  const receitas = [], despesas = [], investimentos = [], saldos = [];
-  for(let m=0; m<12; m++){
-    const md = yearData[m];
-    let r=0,d=0,i=0;
-    if(md){
-      md.transactions.forEach(t=>{
-        const v = Number(t.value);
-        if(t.category==='Receita' || t.category==='Receita Recorrente') r+=v;
-        else if(t.category==='Investimento') i+=v;
-        else d+=v;
-      });
-    }
-    receitas.push(r);
-    despesas.push(d);
-    investimentos.push(i);
-    saldos.push(r - d - i);
-  }
-
-  const barCtx = document.getElementById('reportChart');
-  if(barCtx){
-    const datasets = [];
-    if(filter==='Todos' || filter==='Receita') datasets.push({label:'Receitas', data:receitas, backgroundColor:'rgba(75, 192, 192, 0.5)'});
-    if(filter==='Todos' || filter==='Despesa') datasets.push({label:'Despesas', data:despesas, backgroundColor:'rgba(255, 99, 132, 0.5)'});
-    if(filter==='Todos' || filter==='Investimento') datasets.push({label:'Investimentos', data:investimentos, backgroundColor:'rgba(54, 162, 235, 0.5)'});
-    if(reportChart) reportChart.destroy();
-    reportChart = new Chart(barCtx, { type:'bar', data:{ labels: months, datasets } });
-  }
-
-  const lineCtx = document.getElementById('reportSaldoChart');
-  if(lineCtx){
-    let data, label;
-    if(filter==='Receita'){ data = receitas; label = 'Receitas'; }
-    else if(filter==='Despesa'){ data = despesas; label = 'Despesas'; }
-    else if(filter==='Investimento'){ data = investimentos; label = 'Investimentos'; }
-    else { data = saldos; label = 'Saldo'; }
-    if(reportSaldoChart) reportSaldoChart.destroy();
-    reportSaldoChart = new Chart(lineCtx, {
-      type:'line',
-      data:{ labels: months, datasets:[{ label, data, borderColor:'rgba(75, 192, 192, 1)', fill:false }] }
-    });
-  }
-
-  const pieCtx = document.getElementById('reportPieChart');
-  if(pieCtx){
-    const monthData = getMonthData(currentYear, currentMonth);
-    const catTotals = {};
-    monthData.transactions.forEach(t=>{
-      const v = Number(t.value);
-      if(filter==='Todos'){
-        if(t.category==='Despesa'){ const key=t.subcategory||'Outras'; catTotals[key]=(catTotals[key]||0)+v; }
-      } else if(filter==='Despesa' && t.category==='Despesa'){
-        const key=t.subcategory||'Outras'; catTotals[key]=(catTotals[key]||0)+v;
-      } else if(filter==='Receita' && (t.category==='Receita' || t.category==='Receita Recorrente')){
-        const key=t.subcategory||'Outras'; catTotals[key]=(catTotals[key]||0)+v;
-      } else if(filter==='Investimento' && t.category==='Investimento'){
-        const key=t.subcategory||'Outras'; catTotals[key]=(catTotals[key]||0)+v;
-      }
-    });
-    const labels = Object.keys(catTotals);
-    const values = Object.values(catTotals);
-    const palette = ['#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff','#ff9f40','#c9cbcf'];
-    const colors = labels.map((_,i)=>palette[i%palette.length]);
-    if(reportPieChart) reportPieChart.destroy();
-    reportPieChart = new Chart(pieCtx, {
-      type:'pie',
-      data:{ labels, datasets:[{ data: values, backgroundColor: colors }] },
-      options:{ plugins:{ legend:{ position:'bottom' } } }
-    });
-  }
-}
-
-function addTransaction(e) {
+function addTransaction(e){
   e.preventDefault();
   const form = e.target;
-  if(editing) {
+  if(editing){
     const { id, year, month } = editing;
     const oldData = getMonthData(year, month);
     const t = oldData.transactions.find(tr=>tr.id===id);
-    if(t) {
+    if(t){
       const newDate = new Date(form.date.value);
       const newYear = newDate.getFullYear();
       const newMonth = newDate.getMonth();
@@ -375,7 +97,7 @@ function addTransaction(e) {
         value: parseFloat(form.value.value),
         paid: form.paid.checked
       });
-      if(newYear !== year || newMonth !== month) {
+      if(newYear !== year || newMonth !== month){
         oldData.transactions = oldData.transactions.filter(tr=>tr.id!==id);
         const newData = getMonthData(newYear, newMonth);
         newData.transactions.push(t);
@@ -478,9 +200,8 @@ function addTransaction(e) {
       let balance = principal;
       for(let i=0;i<parcelas;i++) {
         const interestPortion = Math.round(balance * rate * 100) / 100;
-        let valor = Math.round(monthly * 100) / 100;
-        if(i === parcelas-1) valor = Math.round((balance + interestPortion) * 100) / 100;
-        balance = Math.round((balance + interestPortion - valor) * 100) / 100;
+        const principalPortion = monthly - interestPortion;
+        balance -= principalPortion;
         const d = addMonths(form.date.value, i + 1);
         const dateStr = d.toISOString().split('T')[0];
         const t = {
@@ -490,7 +211,7 @@ function addTransaction(e) {
           subcategory: form.subcategory.value,
           description: `${form.description.value || ''} (${i+1}/${parcelas})`,
           payment: paymentType,
-          value: valor,
+          value: monthly,
           paid: false,
           installmentId: groupId,
           installmentNumber: i + 1,
@@ -501,23 +222,7 @@ function addTransaction(e) {
       }
     }
   } else {
-    const newDate = new Date(form.date.value);
-    const data = getMonthData(newDate.getFullYear(), newDate.getMonth());
-    let recurringId;
-    if(form.type.value==='Receita Recorrente') {
-      const recur = {
-        id: Date.now(),
-        startDate: form.date.value,
-        day: newDate.getDate(),
-        description: form.description.value,
-        payment: form.payment.value,
-        value: parseFloat(form.value.value),
-        subcategory: form.subcategory.value,
-        exceptions: []
-      };
-      store.recurring.push(recur);
-      recurringId = recur.id;
-    }
+    const d = new Date(form.date.value);
     const t = {
       id: Date.now(),
       date: form.date.value,
@@ -526,10 +231,10 @@ function addTransaction(e) {
       description: form.description.value,
       payment: form.payment.value,
       value: parseFloat(form.value.value),
-      paid: form.paid.checked,
-      ...(recurringId?{recurringId}: {})
+      paid: form.paid.checked
     };
-    data.transactions.push(t);
+    const dataMonth = getMonthData(d.getFullYear(), d.getMonth());
+    dataMonth.transactions.push(t);
   }
   save();
   form.reset();
@@ -537,7 +242,7 @@ function addTransaction(e) {
   render();
 }
 
-function startEditTransaction(e) {
+function startEditTransaction(e){
   const id = Number(e.currentTarget.dataset.id);
   const data = getMonthData(currentYear, currentMonth);
   const t = data.transactions.find(tr=>tr.id===id);
@@ -557,7 +262,7 @@ function startEditTransaction(e) {
   if(submitBtn) submitBtn.textContent = 'Salvar';
 }
 
-function deleteTransaction(e) {
+function deleteTransaction(e){
   const id = Number(e.currentTarget.dataset.id);
   const data = getMonthData(currentYear, currentMonth);
   const t = data.transactions.find(tr=>tr.id===id);
@@ -609,7 +314,7 @@ function deleteTransaction(e) {
   render();
 }
 
-function handlePaymentChange() {
+function handlePaymentChange(){
   const installments = document.getElementById('installments');
   const installmentValue = document.getElementById('installmentValue');
   const value = document.getElementById('value');
@@ -652,7 +357,7 @@ function handlePaymentChange() {
   }
 }
 
-function togglePaid(e) {
+function togglePaid(e){
   const id = Number(e.target.dataset.id);
   const data = getMonthData(currentYear, currentMonth);
   const t = data.transactions.find(t=>t.id===id);
@@ -663,9 +368,17 @@ function togglePaid(e) {
   }
 }
 
-function init() {
-  renderYearSelect();
-  renderMonthButtons();
+function render(){
+  const balanceInput = document.getElementById('initialBalance');
+  if (balanceInput) balanceInput.value = getMonthData(currentYear, currentMonth).initialBalance;
+  renderYearSelect(render);
+  renderMonthButtons(render);
+  renderTable();
+  recalc();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  render();
   const form = document.getElementById('transactionForm');
   if (form) form.addEventListener('submit', addTransaction);
   const balanceInput = document.getElementById('initialBalance');
@@ -683,23 +396,7 @@ function init() {
   const importFile = document.getElementById('importFile');
   if (importBtn && importFile) {
     importBtn.addEventListener('click', () => importFile.click());
-    importFile.addEventListener('change', importData);
+    importFile.addEventListener('change', e => importData(e, render));
   }
-  const filterSelect = document.getElementById('typeFilter');
-  if (filterSelect) filterSelect.addEventListener('change', render);
   handlePaymentChange();
-  render();
-}
-
-function render() {
-  const balanceInput = document.getElementById('initialBalance');
-  if (balanceInput) balanceInput.value = getMonthData(currentYear, currentMonth).initialBalance;
-  renderYearSelect();
-  renderMonthButtons();
-  renderTable();
-  recalc();
-  renderDashboard();
-  renderReports();
-}
-
-document.addEventListener('DOMContentLoaded', init);
+});
