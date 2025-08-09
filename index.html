@@ -14,12 +14,17 @@
       <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
       <li class="nav-item"><a class="nav-link" href="orcamento.html">Orçamento</a></li>
       <li class="nav-item"><a class="nav-link" href="lancamentos.html">Lançamentos</a></li>
-      <li class="nav-item"><a class="nav-link" href="relatorios.html">Relatórios</a></li>
     </ul>
 
     <div class="d-flex mb-3">
       <select id="yearSelect" class="form-select w-auto me-2"></select>
-      <div id="monthButtons" class="btn-group flex-wrap"></div>
+      <div id="monthButtons" class="btn-group flex-wrap me-2"></div>
+      <select id="typeFilter" class="form-select w-auto">
+        <option value="Todos">Todos</option>
+        <option value="Receita">Receitas</option>
+        <option value="Despesa">Despesas</option>
+        <option value="Investimento">Investimentos</option>
+      </select>
     </div>
 
     <div class="row g-3">

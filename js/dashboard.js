@@ -3,6 +3,9 @@ import { months, currentYear, currentMonth, getYearData, getMonthData, renderYea
 let chartReceitasDespesas, chartSaldo, chartCategorias;
 
 function renderDashboard(){
+  const filterSelect = document.getElementById('typeFilter');
+  const filter = filterSelect ? filterSelect.value : 'Todos';
+
   const barCtx = document.getElementById('chartReceitasDespesas');
   if(!barCtx) return;
 
@@ -25,28 +28,25 @@ function renderDashboard(){
     saldos.push(r - d - i);
   }
 
+  const datasets = [];
+  if(filter==='Todos' || filter==='Receita') datasets.push({ label: 'Receitas', data: receitas, backgroundColor: 'rgba(75, 192, 192, 0.5)' });
+  if(filter==='Todos' || filter==='Despesa') datasets.push({ label: 'Despesas', data: despesas, backgroundColor: 'rgba(255, 99, 132, 0.5)' });
+  if(filter==='Todos' || filter==='Investimento') datasets.push({ label: 'Investimentos', data: investimentos, backgroundColor: 'rgba(54, 162, 235, 0.5)' });
+
   if(chartReceitasDespesas) chartReceitasDespesas.destroy();
-  chartReceitasDespesas = new Chart(barCtx, {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: [
-        { label: 'Receitas', data: receitas, backgroundColor: 'rgba(75, 192, 192, 0.5)' },
-        { label: 'Despesas', data: despesas, backgroundColor: 'rgba(255, 99, 132, 0.5)' },
-        { label: 'Investimentos', data: investimentos, backgroundColor: 'rgba(54, 162, 235, 0.5)' }
-      ]
-    }
-  });
+  chartReceitasDespesas = new Chart(barCtx, { type: 'bar', data: { labels: months, datasets } });
 
   const lineCtx = document.getElementById('chartSaldo');
   if(lineCtx){
+    let data, label;
+    if(filter==='Receita'){ data = receitas; label = 'Receitas'; }
+    else if(filter==='Despesa'){ data = despesas; label = 'Despesas'; }
+    else if(filter==='Investimento'){ data = investimentos; label = 'Investimentos'; }
+    else { data = saldos; label = 'Saldo'; }
     if(chartSaldo) chartSaldo.destroy();
     chartSaldo = new Chart(lineCtx, {
       type: 'line',
-      data: {
-        labels: months,
-        datasets: [{ label: 'Saldo', data: saldos, borderColor: 'rgba(75, 192, 192, 1)', fill: false }]
-      }
+      data: { labels: months, datasets: [{ label, data, borderColor: 'rgba(75, 192, 192, 1)', fill: false }] }
     });
   }
 
@@ -55,9 +55,21 @@ function renderDashboard(){
     const monthData = getMonthData(currentYear, currentMonth);
     const catTotals = {};
     monthData.transactions.forEach(t=>{
-      if(t.category==='Despesa'){
+      const v = Number(t.value);
+      if(filter==='Todos'){
+        if(t.category==='Despesa'){
+          const key = t.subcategory || 'Outras';
+          catTotals[key] = (catTotals[key]||0) + v;
+        }
+      } else if(filter==='Despesa' && t.category==='Despesa'){
         const key = t.subcategory || 'Outras';
-        catTotals[key] = (catTotals[key]||0) + Number(t.value);
+        catTotals[key] = (catTotals[key]||0) + v;
+      } else if(filter==='Receita' && (t.category==='Receita' || t.category==='Receita Recorrente')){
+        const key = t.subcategory || 'Outras';
+        catTotals[key] = (catTotals[key]||0) + v;
+      } else if(filter==='Investimento' && t.category==='Investimento'){
+        const key = t.subcategory || 'Outras';
+        catTotals[key] = (catTotals[key]||0) + v;
       }
     });
     const labels = Object.keys(catTotals);
@@ -79,4 +91,8 @@ function render(){
   renderDashboard();
 }
 
-document.addEventListener('DOMContentLoaded', render);
+document.addEventListener('DOMContentLoaded', () => {
+  const filterSelect = document.getElementById('typeFilter');
+  if(filterSelect) filterSelect.addEventListener('change', render);
+  render();
+});
